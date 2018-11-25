@@ -435,7 +435,7 @@ def build_uds3_ivp_form(record):
         a5.ARTHUPEX = ''
         a5.ARTHLOEX = ''
         a5.ARTHSPIN = ''
-        a5.ARTHUNK = '' 
+        a5.ARTHUNK = ''
     packet.append(a5)
 
     b1 = ivp_forms.FormB1()
@@ -633,28 +633,33 @@ def build_uds3_ivp_form(record):
     b9.FTLDEVAL = record['ftldeval']
     packet.append(b9)
 
-    # Among C1S and C2 forms, one must be filled, one must be empty. After 2017/10/23, must be C2
+    '''
+    Among C1S and C2 forms, one must be filled, one must be empty.
+    After 2017/10/23, must be C2
+    '''
     post_c2 = False
-    if (int(record['visityr'])>2017) or (int(record['visityr'])==2017 and int(record['visitmo'])>10) or \
-        (int(record['visityr'])==2017 and int(record['visitmo'])==10 and int(record['visitday'])>=23):
+    if (int(record['visityr']) > 2017) or \
+       (int(record['visityr']) == 2017 and int(record['visitmo']) > 10) or \
+       (int(record['visityr']) == 2017 and int(record['visitmo']) == 10 and
+            int(record['visitday']) >= 23):
         post_c2 = True
 
     if post_c2:
-        # print("Initial visit. C2. Year: " + record['visityr'] + " Month: " + record['visitmo'] + " Day: " + record['visitday'])
-        if(len(record['c1s_1a_mmseloc'].strip())==0 or len(record['c1s_11a_cogstat'].strip())==0):
+        if(len(record['c1s_1a_mmseloc'].strip()) == 0 or
+           len(record['c1s_11a_cogstat'].strip()) == 0):
             ptid = record['ptid']
-            message = "Could not parse packet as C2 form is missing data"
-            message = message + " for PTID : " + ("unknown" if not ptid else ptid)
-            raise Exception(message)
+            msg = "Could not parse packet as C2 form is missing data"
+            msg = msg + " for PTID : " + ("unknown" if not ptid else ptid)
+            raise Exception(msg)
         else:
             addC2(record, packet)
     else:
-        # print("Initial visit. C1S. Year: " + record['visityr'] + " Month: " + record['visitmo'] + " Day: " + record['visitday'])
-        if(len(record['mocacomp'].strip())==0 or len(record['cogstat_c2'].strip())==0):
+        if(len(record['mocacomp'].strip()) == 0 or
+           len(record['cogstat_c2'].strip()) == 0):
             ptid = record['ptid']
-            message = "Could not parse packet as C1S form is missing data"
-            message = message + " for PTID : " + ("unknown" if not ptid else ptid)
-            raise Exception(message)
+            msg = "Could not parse packet as C1S form is missing data"
+            msg = msg + " for PTID : " + ("unknown" if not ptid else ptid)
+            raise Exception(msg)
         else:
             addC1S(record, packet)
 
@@ -831,33 +836,34 @@ def build_uds3_ivp_form(record):
     packet.append(d2)
 
     post_Z1X = False
-    if (int(record['visityr'])>2018) or (int(record['visityr'])==2018 and int(record['visitmo'])>4) or \
-        (int(record['visityr'])==2018 and int(record['visitmo'])==4 and int(record['visitday'])>=2):
+    if (int(record['visityr']) > 2018) or \
+       (int(record['visityr']) == 2018 and int(record['visitmo']) > 4) or \
+       (int(record['visityr']) == 2018 and int(record['visitmo']) == 4 and
+            int(record['visitday']) >= 2):
         post_Z1X = True
 
     if post_Z1X:
-        # print("Initial visit. Z1X. Year: " + record['visityr'] + " Month: " + record['visitmo'] + " Day: " + record['visitday'])
-        if(len(record['a1lang'].strip())==0 or len(record['clssubmitted'].strip())==0):
+        if(len(record['a1lang'].strip()) == 0 or
+           len(record['clssubmitted'].strip()) == 0):
             ptid = record['ptid']
-            message = "Could not parse packet as Z1X form is missing data"
-            message = message + " for PTID : " + ("unknown" if not ptid else ptid)
-            raise Exception(message)
+            msg = "Could not parse packet as Z1X form is missing data"
+            msg = msg + " for PTID : " + ("unknown" if not ptid else ptid)
+            raise Exception(msg)
         else:
             addZ1X(record, packet)
     else:
-        # print("Initial visit. Z1. Year: " + record['visityr'] + " Month: " + record['visitmo'] + " Day: " + record['visitday'])
-        if(len(record['a2sub'].strip())==0 or len(record['b7sub'].strip())==0):
+        if(len(record['a2sub'].strip()) == 0 or
+           len(record['b7sub'].strip()) == 0):
             ptid = record['ptid']
-            message = "Could not parse packet as Z1 form is missing data"
-            message = message + " for PTID : " + ("unknown" if not ptid else ptid)
-            raise Exception(message)
+            msg = "Could not parse packet as Z1 form is missing data"
+            msg = msg + " for PTID : " + ("unknown" if not ptid else ptid)
+            raise Exception(msg)
         else:
             addZ1(record, packet)
 
     update_header(record, packet)
 
     return packet
-
 
 
 def addZ1(record, packet):
@@ -888,6 +894,7 @@ def addZ1(record, packet):
     z1.B7NOT = record['b7not']
     z1.B7COMM = record['b7comm']
     packet.insert(0, z1)
+
 
 def addZ1X(record, packet):
     z1x = ivp_forms.FormZ1X()
@@ -938,13 +945,13 @@ def addZ1X(record, packet):
     z1x.LANGE2F = record['e2flang']
     z1x.LANGE3F = record['e3flang']
     z1x.LANGCLS = record['clslang']
-    z1x.CLSSUB  = record['clssubmitted']
+    z1x.CLSSUB = record['clssubmitted']
     packet.insert(0, z1x)
 
 
 def addC1S(record, packet):
     c1s = ivp_forms.FormC1S()
-    c1s.MMSELOC = record['c1s_1a_mmseloc'] #check for blank
+    c1s.MMSELOC = record['c1s_1a_mmseloc']
     c1s.MMSELAN = record['c1s_1a1_mmselan']
     c1s.MMSELANX = record['c1s_1a2_mmselanx']
     c1s.MMSEORDA = record['c1s_1b1_mmseorda']
@@ -975,7 +982,7 @@ def addC1S(record, packet):
     c1s.MEMUNITS = record['c1s_9a_memunits']
     c1s.MEMTIME = record['c1s_9b_memtime']
     c1s.BOSTON = record['c1s_10a_boston']
-    c1s.COGSTAT = record['c1s_11a_cogstat'] #check for blank
+    c1s.COGSTAT = record['c1s_11a_cogstat']
     packet.append(c1s)
 
 
