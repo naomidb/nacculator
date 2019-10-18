@@ -9,11 +9,143 @@ from nacc.uds3.fvp import forms as fvp_forms
 from nacc.uds3 import clsform
 from nacc.uds3 import packet as fvp_packet
 
+
 def build_uds3_fvp_form(record):
     """ Converts REDCap CSV data into a packet (list of FVP Form objects) """
     packet = fvp_packet.Packet()
-    
     #Set up the forms.
+    add_z1_or_z1x(record, packet)
+    add_a1(record, packet)
+    if record['a2sub'] == '1':
+        add_a2(record, packet)
+    if record['a3sub'] == '1':
+        add_a3(record, packet)
+    if record['a4sub'] == '1':
+        add_a4(record, packet)
+    if record['b1sub'] == '1':
+        add_b1(record, packet)
+    add_b4(record, packet)
+    if record['b5sub'] == '1':
+        add_b5(record, packet)
+    if record['b6sub'] == '1':
+        add_b6(record, packet)
+    if record['b7sub'] == '1':
+        add_b7(record, packet)
+    add_b8(record, packet)
+    add_b9(record, packet)
+    add_c1s_or_c2(record, packet)
+    add_d1(record, packet)
+    add_d2(record, packet)
+    clsform.add_cls(record, packet, fvp_forms)
+    update_header(record, packet)
+
+    return packet
+
+
+def add_z1_or_z1x(record, packet):
+    # Forms A1, A5, B4, B8, B9, C2, D1, and D2 are all REQUIRED.
+    # Fields a1sub, a5sub1, b4sub1, b8sub1, b9sub1, c2sub1, d1sub1, and d2sub1
+    # are just section separators.
+    z1x = fvp_forms.FormZ1X()
+    z1x_filled_fields = 0
+    z1x_field_mapping = {
+        'LANGA1': 'fu_langa1',
+        'LANGA2': 'fu_langa2',
+        'A2SUB': 'fu_a2sub',
+        'A2NOT': 'fu_a2not',
+        'LANGA3': 'fu_langa3',
+        'A3SUB': 'fu_a3sub',
+        'LANGA4': 'fu_langa4',
+        'A4SUB': 'fu_a4sub',
+        'A4NOT': 'fu_a4not',
+        'LANGB1': 'fu_langb1',
+        'B1SUB': 'fu_b1sub',
+        'B1NOT': 'fu_b1not',
+        'LANGB4': 'fu_langb4',
+        'LANGB5': 'fu_langb5',
+        'B5SUB': 'fu_b5sub',
+        'B5NOT': 'fu_b5not',
+        'LANGB6': 'fu_langb6',
+        'B6SUB': 'fu_b6sub',
+        'B6NOT': 'fu_b6not',
+        'LANGB7': 'fu_langb7',
+        'B7SUB': 'fu_b7sub',
+        'B7NOT': 'fu_b7not',
+        'LANGB8': 'fu_langb8',
+        'LANGB9': 'fu_langb9',
+        'LANGC2': 'fu_langc2',
+        'LANGD1': 'fu_langd1',
+        'LANGD2': 'fu_langd2',
+        'LANGA3A': 'fu_langa3a',
+        'FTDA3AFS': 'fu_ftda3afs',
+        'FTDA3AFR': 'fu_ftda3afr',
+        'LANGB3F': 'fu_langb3f',
+        'LANGB9F': 'fu_langb9f',
+        'LANGC1F': 'fu_langc1f',
+        'LANGC2F': 'fu_langc2f',
+        'LANGC3F': 'fu_langc3f',
+        'LANGC4F': 'fu_langc4f',
+        'FTDC4FS': 'fu_ftdc4fs',
+        'FTDC4FR': 'fu_ftdc4fr',
+        'FTDC5FS': 'fu_ftdc5fs',
+        'FTDC5FR': 'fu_ftdc5fr',
+        'FTDC6FS': 'fu_ftdc6fs',
+        'FTDC6FR': 'fu_ftdc6fr',
+        'LANGE2F': 'fu_lange2f',
+        'LANGE3F': 'fu_lange3f',
+        'LANGCLS': 'fu_langcls',
+        'CLSSUB': 'fu_clssub'
+    }
+    for key, value in z1x_field_mapping.iteritems():
+        if record[value].strip():
+            setattr(z1x, key, record[value])
+            z1x_filled_fields += 1
+
+    z1 = fvp_forms.FormZ1()
+    z1_filled_fields = 0
+    z1_field_mapping = {
+        'A2SUB': 'fu_a2sub',
+        'A2NOT': 'fu_a2not',
+        'A2COMM': 'fu_a2comm',
+        'A3SUB': 'fu_a3sub',
+        'A3NOT': 'fu_a3not',
+        'A3COMM': 'fu_a3comm',
+        'A4SUB': 'fu_a4sub',
+        'A4NOT': 'fu_a4not',
+        'A4COMM': 'fu_a4comm',
+        'B1SUB': 'fu_b1sub',
+        'B1NOT': 'fu_b1not',
+        'B1COMM': 'fu_b1comm',
+        'B5SUB': 'fu_b5sub',
+        'B5NOT': 'fu_b5not',
+        'B5COMM': 'fu_b5comm',
+        'B6SUB': 'fu_b6sub',
+        'B6NOT': 'fu_b6not',
+        'B6COMM': 'fu_b6comm',
+        'B7SUB': 'fu_b7sub',
+        'B7NOT': 'fu_b7not',
+        'B7COMM': 'fu_b7comm'
+    }
+    for key, value in z1_field_mapping.iteritems():
+        if record[value].strip():
+            setattr(z1, key, record[value])
+            z1_filled_fields += 1
+
+    # Prefer Z1X to Z1
+    # If both are blank, use date (Z1X after 2018/04/02)
+    if z1x_filled_fields > 0:
+        packet.insert(0, z1x)
+    elif z1_filled_fields > 0:
+        packet.insert(0, z1)
+    elif (int(record['visityr'])>2018) or (int(record['visityr'])==2018 and \
+          int(record['visitmo'])>4) or (int(record['visityr'])==2018 and \
+          int(record['visitmo'])==4 and int(record['visitday'])>=2):
+        packet.insert(0, z1x)
+    else:
+        packet.insert(0, z1)
+
+
+def add_a1(record, packet):
     a1 = fvp_forms.FormA1()
     a1.BIRTHMO   = record['fu_birthmo']
     a1.BIRTHYR   = record['fu_birthyr']
@@ -25,6 +157,8 @@ def build_uds3_fvp_form(record):
     a1.ZIP       = record['fu_zip']
     packet.append(a1)
 
+
+def add_a2(record, packet):
     a2 = fvp_forms.FormA2()
     a2.INBIRMO   = record['fu_inbirmo']
     a2.INBIRYR   = record['fu_inbiryr']
@@ -48,6 +182,8 @@ def build_uds3_fvp_form(record):
     a2.INRELY    = record['fu_inrely']
     packet.append(a2)
 
+
+def add_a3(record, packet):
     a3 = fvp_forms.FormA3()
     a3.NWINFMUT  = record['fu_nwinfmut']
     a3.FADMUT    = record['fu_fadmut']
@@ -329,6 +465,7 @@ def build_uds3_fvp_form(record):
     packet.append(a3)
 
 
+def add_a4(record, packet):
     # Form A4D and A4G are special in that our REDCap implementation (FVP A4)
     # combines them by asking if the subject is taking any medications (which
     # corresponds to A4G.ANYMEDS), then has 50 fields to specify each
@@ -345,6 +482,7 @@ def build_uds3_fvp_form(record):
                 packet.append(a4d)
 
 
+def add_b1(record, packet):
     b1 = fvp_forms.FormB1()
     b1.HEIGHT    = record['fu_height']
     b1.WEIGHT    = record['fu_weight']
@@ -360,6 +498,7 @@ def build_uds3_fvp_form(record):
     packet.append(b1)
 
 
+def add_b4(record, packet):
     b4 = fvp_forms.FormB4()
     b4.MEMORY    = record['fu_memory']
     b4.ORIENT    = record['fu_orient']
@@ -374,6 +513,7 @@ def build_uds3_fvp_form(record):
     packet.append(b4)
 
 
+def add_b5(record, packet):
     b5 = fvp_forms.FormB5()
     b5.NPIQINF   = record['fu_npiqinf']
     b5.NPIQINFX  = record['fu_npiqinfx']
@@ -404,6 +544,7 @@ def build_uds3_fvp_form(record):
     packet.append(b5)
 
 
+def add_b6(record, packet):
     b6 = fvp_forms.FormB6()
     b6.NOGDS     = record['fu_nogds']
     b6.SATIS     = record['fu_satis']
@@ -425,6 +566,7 @@ def build_uds3_fvp_form(record):
     packet.append(b6)
 
 
+def add_b7(record, packet):
     b7 = fvp_forms.FormB7()
     b7.BILLS     = record['fu_bills']
     b7.TAXES     = record['fu_taxes']
@@ -439,6 +581,7 @@ def build_uds3_fvp_form(record):
     packet.append(b7)
 
 
+def add_b8(record, packet):
     b8 = fvp_forms.FormB8()
     b8.NORMEXAM  = record['fu_normexam']
     b8.PARKSIGN  = record['fu_parksign']
@@ -484,6 +627,7 @@ def build_uds3_fvp_form(record):
     packet.append(b8)
 
 
+def add_b9(record, packet):
     b9 = fvp_forms.FormB9()
     b9.DECSUB    = record['fu_decsub']
     b9.DECIN     = record['fu_decin']
@@ -543,185 +687,6 @@ def build_uds3_fvp_form(record):
     b9.LBDEVAL   = record['fu_lbdeval']
     b9.FTLDEVAL  = record['fu_ftldeval']
     packet.append(b9)
-
-    add_c1s_or_c2(record, packet)
-
-    clsform.add_cls(record, packet, fvp_forms)
-
-    d1 = fvp_forms.FormD1()
-    d1.DXMETHOD  = record['fu_dxmethod']
-    d1.NORMCOG   = record['fu_normcog']
-    d1.DEMENTED  = record['fu_demented']
-    d1.AMNDEM    = record['fu_amndem']
-    d1.PCA       = record['fu_pca']
-    d1.PPASYN    = record['fu_ppasyn']
-    d1.PPASYNT   = record['fu_ppasynt']
-    d1.FTDSYN    = record['fu_ftdsyn']
-    d1.LBDSYN    = record['fu_lbdsyn']
-    d1.NAMNDEM   = record['fu_namndem']
-    d1.MCIAMEM   = record['fu_mciamem']
-    d1.MCIAPLUS  = record['fu_mciaplus']
-    d1.MCIAPLAN  = record['fu_mciaplan']
-    d1.MCIAPATT  = record['fu_mciapatt']
-    d1.MCIAPEX   = record['fu_mciapex']
-    d1.MCIAPVIS  = record['fu_mciapvis']
-    d1.MCINON1   = record['fu_mcinon1']
-    d1.MCIN1LAN  = record['fu_mcin1lan']
-    d1.MCIN1ATT  = record['fu_mcin1att']
-    d1.MCIN1EX   = record['fu_mcin1ex']
-    d1.MCIN1VIS  = record['fu_mcin1vis']
-    d1.MCINON2   = record['fu_mcinon2']
-    d1.MCIN2LAN  = record['fu_mcin2lan']
-    d1.MCIN2ATT  = record['fu_mcin2att']
-    d1.MCIN2EX   = record['fu_mcin2ex']
-    d1.MCIN2VIS  = record['fu_mcin2vis']
-    d1.IMPNOMCI  = record['fu_impnomci']
-    d1.AMYLPET   = record['fu_amylpet']
-    d1.AMYLCSF   = record['fu_amylcsf']
-    d1.FDGAD     = record['fu_fdgad']
-    d1.HIPPATR   = record['fu_hippatr']
-    d1.TAUPETAD  = record['fu_taupetad']
-    d1.CSFTAU    = record['fu_csftau']
-    d1.FDGFTLD   = record['fu_fdgftld']
-    d1.TPETFTLD  = record['fu_tpetftld']
-    d1.MRFTLD    = record['fu_mrftld']
-    d1.DATSCAN   = record['fu_datscan']
-    d1.OTHBIOM   = record['fu_othbiom']
-    d1.OTHBIOMX  = record['fu_othbiomx']
-    d1.IMAGLINF  = record['fu_imaglinf']
-    d1.IMAGLAC   = record['fu_imaglac']
-    d1.IMAGMACH  = record['fu_imagmach']
-    d1.IMAGMICH  = record['fu_imagmich']
-    d1.IMAGMWMH  = record['fu_imagmwmh']
-    d1.IMAGEWMH  = record['fu_imagewmh']
-    d1.ADMUT     = record['fu_admut']
-    d1.FTLDMUT   = record['fu_ftldmut']
-    d1.OTHMUT    = record['fu_othmut']
-    d1.OTHMUTX   = record['fu_othmutx']
-    d1.ALZDIS    = record['fu_alzdis']
-    d1.ALZDISIF  = record['fu_alzdisif']
-    d1.LBDIS     = record['fu_lbdis']
-    d1.LBDIF     = record['fu_lbdif']
-    d1.PARK      = record['fu_park']
-    d1.MSA       = record['fu_msa']
-    d1.MSAIF     = record['fu_msaif']
-    d1.PSP       = record['fu_psp']
-    d1.PSPIF     = record['fu_pspif']
-    d1.CORT      = record['fu_cort']
-    d1.CORTIF    = record['fu_cortif']
-    d1.FTLDMO    = record['fu_ftldmo']
-    d1.FTLDMOIF  = record['fu_ftldmoif']
-    d1.FTLDNOS   = record['fu_ftldnos']
-    d1.FTLDNOIF  = record['fu_ftldnoif']
-    d1.FTLDSUBT  = record['fu_ftldsubt']
-    d1.FTLDSUBX  = record['fu_ftldsubx']
-    d1.CVD       = record['fu_cvd']
-    d1.CVDIF     = record['fu_cvdif']
-    d1.PREVSTK   = record['fu_prevstk']
-    d1.STROKDEC  = record['fu_strokdec']
-    d1.STKIMAG   = record['fu_stkimag']
-    d1.INFNETW   = record['fu_infnetw']
-    d1.INFWMH    = record['fu_infwmh']
-    d1.ESSTREM   = record['fu_esstrem']
-    d1.ESSTREIF  = record['fu_esstreif']
-    d1.DOWNS     = record['fu_downs']
-    d1.DOWNSIF   = record['fu_downsif']
-    d1.HUNT      = record['fu_hunt']
-    d1.HUNTIF    = record['fu_huntif']
-    d1.PRION     = record['fu_prion']
-    d1.PRIONIF   = record['fu_prionif']
-    d1.BRNINJ    = record['fu_brninj']
-    d1.BRNINJIF  = record['fu_brninjif']
-    d1.BRNINCTE  = record['fu_brnincte']
-    d1.HYCEPH    = record['fu_hyceph']
-    d1.HYCEPHIF  = record['fu_hycephif']
-    d1.EPILEP    = record['fu_epilep']
-    d1.EPILEPIF  = record['fu_epilepif']
-    d1.NEOP      = record['fu_neop']
-    d1.NEOPIF    = record['fu_neopif']
-    d1.NEOPSTAT  = record['fu_neopstat']
-    d1.HIV       = record['fu_hiv']
-    d1.HIVIF     = record['fu_hivif']
-    d1.OTHCOG    = record['fu_othcog']
-    d1.OTHCOGIF  = record['fu_othcogif']
-    d1.OTHCOGX   = record['fu_othcogx']
-    d1.DEP       = record['fu_dep']
-    d1.DEPIF     = record['fu_depif']
-    d1.DEPTREAT  = record['fu_deptreat']
-    d1.BIPOLDX   = record['fu_bipoldx']
-    d1.BIPOLDIF  = record['fu_bipoldif']
-    d1.SCHIZOP   = record['fu_schizop']
-    d1.SCHIZOIF  = record['fu_schizoif']
-    d1.ANXIET    = record['fu_anxiet']
-    d1.ANXIETIF  = record['fu_anxietif']
-    d1.DELIR     = record['fu_delir']
-    d1.DELIRIF   = record['fu_delirif']
-    d1.PTSDDX    = record['fu_ptsddx']
-    d1.PTSDDXIF  = record['fu_ptsddxif']
-    d1.OTHPSY    = record['fu_othpsy']
-    d1.OTHPSYIF  = record['fu_othpsyif']
-    d1.OTHPSYX   = record['fu_othpsyx']
-    d1.ALCDEM    = record['fu_alcdem']
-    d1.ALCDEMIF  = record['fu_alcdemif']
-    d1.ALCABUSE  = record['fu_alcabuse']
-    d1.IMPSUB    = record['fu_impsub']
-    d1.IMPSUBIF  = record['fu_impsubif']
-    d1.DYSILL    = record['fu_dysill']
-    d1.DYSILLIF  = record['fu_dysillif']
-    d1.MEDS      = record['fu_meds']
-    d1.MEDSIF    = record['fu_medsif']
-    d1.COGOTH    = record['fu_cogoth']
-    d1.COGOTHIF  = record['fu_cogothif']
-    d1.COGOTHX   = record['fu_cogothx']
-    d1.COGOTH2   = record['fu_cogoth2']
-    d1.COGOTH2F  = record['fu_cogoth2f']
-    d1.COGOTH2X  = record['fu_cogoth2x']
-    d1.COGOTH3   = record['fu_cogoth3']
-    d1.COGOTH3F  = record['fu_cogoth3f']
-    d1.COGOTH3X  = record['fu_cogoth3x']
-    packet.append(d1)
-
-
-    d2 = fvp_forms.FormD2()
-    d2.CANCER    = record['fu_cancer']
-    d2.CANCSITE  = record['fu_cancsite']
-    d2.DIABET    = record['fu_diabet']
-    d2.MYOINF    = record['fu_myoinf']
-    d2.CONGHRT   = record['fu_conghrt']
-    d2.AFIBRILL  = record['fu_afibrill']
-    d2.HYPERT    = record['fu_hypert']
-    d2.ANGINA    = record['fu_angina']
-    d2.HYPCHOL   = record['fu_hypchol']
-    d2.VB12DEF   = record['fu_vb12def']
-    d2.THYDIS    = record['fu_thydis']
-    d2.ARTH      = record['fu_arth']
-    d2.ARTYPE    = record['fu_artype']
-    d2.ARTYPEX   = record['fu_artypex']
-    d2.ARTUPEX   = record['fu_artupex']
-    d2.ARTLOEX   = record['fu_artloex']
-    d2.ARTSPIN   = record['fu_artspin']
-    d2.ARTUNKN   = record['fu_artunkn']
-    d2.URINEINC  = record['fu_urineinc']
-    d2.BOWLINC   = record['fu_bowlinc']
-    d2.SLEEPAP   = record['fu_sleepap']
-    d2.REMDIS    = record['fu_remdis']
-    d2.HYPOSOM   = record['fu_hyposom']
-    d2.SLEEPOTH  = record['fu_sleepoth']
-    d2.SLEEPOTX  = record['fu_sleepotx']
-    d2.ANGIOCP   = record['fu_angiocp']
-    d2.ANGIOPCI  = record['fu_angiopci']
-    d2.PACEMAKE  = record['fu_pacemake']
-    d2.HVALVE    = record['fu_hvalve']
-    d2.ANTIENC   = record['fu_antienc']
-    d2.ANTIENCX  = record['fu_antiencx']
-    d2.OTHCOND   = record['fu_othcond']
-    d2.OTHCONDX  = record['fu_othcondx']
-    packet.append(d2)
-
-    add_z1_or_z1x(record, packet)
-
-    update_header(record, packet)
-    return packet
 
 
 def add_c1s_or_c2(record, packet):
@@ -874,108 +839,177 @@ def add_c1s_or_c2(record, packet):
         packet.insert(0, c1s)
 
 
-def add_z1_or_z1x(record, packet):
-    # Forms A1, A5, B4, B8, B9, C2, D1, and D2 are all REQUIRED.
-    # Fields a1sub, a5sub1, b4sub1, b8sub1, b9sub1, c2sub1, d1sub1, and d2sub1
-    # are just section separators.
-    z1x = ivp_forms.FormZ1X()
-    z1x_filled_fields = 0
-    z1x_field_mapping = {
-        'LANGA1': 'fu_langa1',
-        'LANGA2': 'fu_langa2',
-        'A2SUB': 'fu_a2sub',
-        'A2NOT': 'fu_a2not',
-        'LANGA3': 'fu_langa3',
-        'A3SUB': 'fu_a3sub',
-        'LANGA4': 'fu_langa4',
-        'A4SUB': 'fu_a4sub',
-        'A4NOT': 'fu_a4not',
-        'LANGA5': 'fu_langa5',
-        'LANGB1': 'fu_langb1',
-        'B1SUB': 'fu_b1sub',
-        'B1NOT': 'fu_b1not',
-        'LANGB4': 'fu_langb4',
-        'LANGB5': 'fu_langb5',
-        'B5SUB': 'fu_b5sub',
-        'B5NOT': 'fu_b5not',
-        'LANGB6': 'fu_langb6',
-        'B6SUB': 'fu_b6sub',
-        'B6NOT': 'fu_b6not',
-        'LANGB7': 'fu_langb7',
-        'B7SUB': 'fu_b7sub',
-        'B7NOT': 'fu_b7not',
-        'LANGB8': 'fu_langb8',
-        'LANGB9': 'fu_langb9',
-        'LANGC2': 'fu_langc2',
-        'LANGD1': 'fu_langd1',
-        'LANGD2': 'fu_langd2',
-        'LANGA3A': 'fu_langa3a',
-        'FTDA3AFS': 'fu_ftda3afs',
-        'FTDA3AFR': 'fu_ftda3afr',
-        'LANGB3F': 'fu_langb3f',
-        'LANGB9F': 'fu_langb9f',
-        'LANGC1F': 'fu_langc1f',
-        'LANGC2F': 'fu_langc2f',
-        'LANGC3F': 'fu_langc3f',
-        'LANGC4F': 'fu_langc4f',
-        'FTDC4FS': 'fu_ftdc4fs',
-        'FTDC4FR': 'fu_ftdc4fr',
-        'FTDC5FS': 'fu_ftdc5fs',
-        'FTDC5FR': 'fu_ftdc5fr',
-        'FTDC6FS': 'fu_ftdc6fs',
-        'FTDC6FR': 'fu_ftdc6fr',
-        'LANGE2F': 'fu_lange2f',
-        'LANGE3F': 'fu_lange3f',
-        'LANGCLS': 'fu_langcls',
-        'CLSSUB': 'fu_clssub'
-    }
-    for key, value in z1x_field_mapping.iteritems():
-        if record[value].strip():
-            setattr(z1x, key, record[value])
-            z1x_filled_fields += 1
+def add_d1(record, packet):
+    d1 = fvp_forms.FormD1()
+    d1.DXMETHOD  = record['fu_dxmethod']
+    d1.NORMCOG   = record['fu_normcog']
+    d1.DEMENTED  = record['fu_demented']
+    d1.AMNDEM    = record['fu_amndem']
+    d1.PCA       = record['fu_pca']
+    d1.PPASYN    = record['fu_ppasyn']
+    d1.PPASYNT   = record['fu_ppasynt']
+    d1.FTDSYN    = record['fu_ftdsyn']
+    d1.LBDSYN    = record['fu_lbdsyn']
+    d1.NAMNDEM   = record['fu_namndem']
+    d1.MCIAMEM   = record['fu_mciamem']
+    d1.MCIAPLUS  = record['fu_mciaplus']
+    d1.MCIAPLAN  = record['fu_mciaplan']
+    d1.MCIAPATT  = record['fu_mciapatt']
+    d1.MCIAPEX   = record['fu_mciapex']
+    d1.MCIAPVIS  = record['fu_mciapvis']
+    d1.MCINON1   = record['fu_mcinon1']
+    d1.MCIN1LAN  = record['fu_mcin1lan']
+    d1.MCIN1ATT  = record['fu_mcin1att']
+    d1.MCIN1EX   = record['fu_mcin1ex']
+    d1.MCIN1VIS  = record['fu_mcin1vis']
+    d1.MCINON2   = record['fu_mcinon2']
+    d1.MCIN2LAN  = record['fu_mcin2lan']
+    d1.MCIN2ATT  = record['fu_mcin2att']
+    d1.MCIN2EX   = record['fu_mcin2ex']
+    d1.MCIN2VIS  = record['fu_mcin2vis']
+    d1.IMPNOMCI  = record['fu_impnomci']
+    d1.AMYLPET   = record['fu_amylpet']
+    d1.AMYLCSF   = record['fu_amylcsf']
+    d1.FDGAD     = record['fu_fdgad']
+    d1.HIPPATR   = record['fu_hippatr']
+    d1.TAUPETAD  = record['fu_taupetad']
+    d1.CSFTAU    = record['fu_csftau']
+    d1.FDGFTLD   = record['fu_fdgftld']
+    d1.TPETFTLD  = record['fu_tpetftld']
+    d1.MRFTLD    = record['fu_mrftld']
+    d1.DATSCAN   = record['fu_datscan']
+    d1.OTHBIOM   = record['fu_othbiom']
+    d1.OTHBIOMX  = record['fu_othbiomx']
+    d1.IMAGLINF  = record['fu_imaglinf']
+    d1.IMAGLAC   = record['fu_imaglac']
+    d1.IMAGMACH  = record['fu_imagmach']
+    d1.IMAGMICH  = record['fu_imagmich']
+    d1.IMAGMWMH  = record['fu_imagmwmh']
+    d1.IMAGEWMH  = record['fu_imagewmh']
+    d1.ADMUT     = record['fu_admut']
+    d1.FTLDMUT   = record['fu_ftldmut']
+    d1.OTHMUT    = record['fu_othmut']
+    d1.OTHMUTX   = record['fu_othmutx']
+    d1.ALZDIS    = record['fu_alzdis']
+    d1.ALZDISIF  = record['fu_alzdisif']
+    d1.LBDIS     = record['fu_lbdis']
+    d1.LBDIF     = record['fu_lbdif']
+    d1.PARK      = record['fu_park']
+    d1.MSA       = record['fu_msa']
+    d1.MSAIF     = record['fu_msaif']
+    d1.PSP       = record['fu_psp']
+    d1.PSPIF     = record['fu_pspif']
+    d1.CORT      = record['fu_cort']
+    d1.CORTIF    = record['fu_cortif']
+    d1.FTLDMO    = record['fu_ftldmo']
+    d1.FTLDMOIF  = record['fu_ftldmoif']
+    d1.FTLDNOS   = record['fu_ftldnos']
+    d1.FTLDNOIF  = record['fu_ftldnoif']
+    d1.FTLDSUBT  = record['fu_ftldsubt']
+    d1.FTLDSUBX  = record['fu_ftldsubx']
+    d1.CVD       = record['fu_cvd']
+    d1.CVDIF     = record['fu_cvdif']
+    d1.PREVSTK   = record['fu_prevstk']
+    d1.STROKDEC  = record['fu_strokdec']
+    d1.STKIMAG   = record['fu_stkimag']
+    d1.INFNETW   = record['fu_infnetw']
+    d1.INFWMH    = record['fu_infwmh']
+    d1.ESSTREM   = record['fu_esstrem']
+    d1.ESSTREIF  = record['fu_esstreif']
+    d1.DOWNS     = record['fu_downs']
+    d1.DOWNSIF   = record['fu_downsif']
+    d1.HUNT      = record['fu_hunt']
+    d1.HUNTIF    = record['fu_huntif']
+    d1.PRION     = record['fu_prion']
+    d1.PRIONIF   = record['fu_prionif']
+    d1.BRNINJ    = record['fu_brninj']
+    d1.BRNINJIF  = record['fu_brninjif']
+    d1.BRNINCTE  = record['fu_brnincte']
+    d1.HYCEPH    = record['fu_hyceph']
+    d1.HYCEPHIF  = record['fu_hycephif']
+    d1.EPILEP    = record['fu_epilep']
+    d1.EPILEPIF  = record['fu_epilepif']
+    d1.NEOP      = record['fu_neop']
+    d1.NEOPIF    = record['fu_neopif']
+    d1.NEOPSTAT  = record['fu_neopstat']
+    d1.HIV       = record['fu_hiv']
+    d1.HIVIF     = record['fu_hivif']
+    d1.OTHCOG    = record['fu_othcog']
+    d1.OTHCOGIF  = record['fu_othcogif']
+    d1.OTHCOGX   = record['fu_othcogx']
+    d1.DEP       = record['fu_dep']
+    d1.DEPIF     = record['fu_depif']
+    d1.DEPTREAT  = record['fu_deptreat']
+    d1.BIPOLDX   = record['fu_bipoldx']
+    d1.BIPOLDIF  = record['fu_bipoldif']
+    d1.SCHIZOP   = record['fu_schizop']
+    d1.SCHIZOIF  = record['fu_schizoif']
+    d1.ANXIET    = record['fu_anxiet']
+    d1.ANXIETIF  = record['fu_anxietif']
+    d1.DELIR     = record['fu_delir']
+    d1.DELIRIF   = record['fu_delirif']
+    d1.PTSDDX    = record['fu_ptsddx']
+    d1.PTSDDXIF  = record['fu_ptsddxif']
+    d1.OTHPSY    = record['fu_othpsy']
+    d1.OTHPSYIF  = record['fu_othpsyif']
+    d1.OTHPSYX   = record['fu_othpsyx']
+    d1.ALCDEM    = record['fu_alcdem']
+    d1.ALCDEMIF  = record['fu_alcdemif']
+    d1.ALCABUSE  = record['fu_alcabuse']
+    d1.IMPSUB    = record['fu_impsub']
+    d1.IMPSUBIF  = record['fu_impsubif']
+    d1.DYSILL    = record['fu_dysill']
+    d1.DYSILLIF  = record['fu_dysillif']
+    d1.MEDS      = record['fu_meds']
+    d1.MEDSIF    = record['fu_medsif']
+    d1.COGOTH    = record['fu_cogoth']
+    d1.COGOTHIF  = record['fu_cogothif']
+    d1.COGOTHX   = record['fu_cogothx']
+    d1.COGOTH2   = record['fu_cogoth2']
+    d1.COGOTH2F  = record['fu_cogoth2f']
+    d1.COGOTH2X  = record['fu_cogoth2x']
+    d1.COGOTH3   = record['fu_cogoth3']
+    d1.COGOTH3F  = record['fu_cogoth3f']
+    d1.COGOTH3X  = record['fu_cogoth3x']
+    packet.append(d1)
 
-    z1 = ivp_forms.FormZ1()
-    z1_filled_fields = 0
-    z1_field_mapping = {
-        'A2SUB': 'fu_a2sub',
-        'A2NOT': 'fu_a2not',
-        'A2COMM': 'fu_a2comm',
-        'A3SUB': 'fu_a3sub',
-        'A3NOT': 'fu_a3not',
-        'A3COMM': 'fu_a3comm',
-        'A4SUB': 'fu_a4sub',
-        'A4NOT': 'fu_a4not',
-        'A4COMM': 'fu_a4comm',
-        'B1SUB': 'fu_b1sub',
-        'B1NOT': 'fu_b1not',
-        'B1COMM': 'fu_b1comm',
-        'B5SUB': 'fu_b5sub',
-        'B5NOT': 'fu_b5not',
-        'B5COMM': 'fu_b5comm',
-        'B6SUB': 'fu_b6sub',
-        'B6NOT': 'fu_b6not',
-        'B6COMM': 'fu_b6comm',
-        'B7SUB': 'fu_b7sub',
-        'B7NOT': 'fu_b7not',
-        'B7COMM': 'fu_b7comm'
-    }
-    for key, value in z1_field_mapping.iteritems():
-        if record[value].strip():
-            setattr(z1, key, record[value])
-            z1_filled_fields += 1
 
-    # Prefer Z1X to Z1
-    # If both are blank, use date (Z1X after 2018/04/02)
-    if z1x_filled_fields > 0:
-        packet.insert(0, z1x)
-    elif z1_filled_fields > 0:
-        packet.insert(0, z1)
-    elif (int(record['visityr'])>2018) or (int(record['visityr'])==2018 and \
-          int(record['visitmo'])>4) or (int(record['visityr'])==2018 and \
-          int(record['visitmo'])==4 and int(record['visitday'])>=2):
-        packet.insert(0, z1x)
-    else:
-        packet.insert(0, z1)
+def add_d2(record, packet):
+    d2 = fvp_forms.FormD2()
+    d2.CANCER    = record['fu_cancer']
+    d2.CANCSITE  = record['fu_cancsite']
+    d2.DIABET    = record['fu_diabet']
+    d2.MYOINF    = record['fu_myoinf']
+    d2.CONGHRT   = record['fu_conghrt']
+    d2.AFIBRILL  = record['fu_afibrill']
+    d2.HYPERT    = record['fu_hypert']
+    d2.ANGINA    = record['fu_angina']
+    d2.HYPCHOL   = record['fu_hypchol']
+    d2.VB12DEF   = record['fu_vb12def']
+    d2.THYDIS    = record['fu_thydis']
+    d2.ARTH      = record['fu_arth']
+    d2.ARTYPE    = record['fu_artype']
+    d2.ARTYPEX   = record['fu_artypex']
+    d2.ARTUPEX   = record['fu_artupex']
+    d2.ARTLOEX   = record['fu_artloex']
+    d2.ARTSPIN   = record['fu_artspin']
+    d2.ARTUNKN   = record['fu_artunkn']
+    d2.URINEINC  = record['fu_urineinc']
+    d2.BOWLINC   = record['fu_bowlinc']
+    d2.SLEEPAP   = record['fu_sleepap']
+    d2.REMDIS    = record['fu_remdis']
+    d2.HYPOSOM   = record['fu_hyposom']
+    d2.SLEEPOTH  = record['fu_sleepoth']
+    d2.SLEEPOTX  = record['fu_sleepotx']
+    d2.ANGIOCP   = record['fu_angiocp']
+    d2.ANGIOPCI  = record['fu_angiopci']
+    d2.PACEMAKE  = record['fu_pacemake']
+    d2.HVALVE    = record['fu_hvalve']
+    d2.ANTIENC   = record['fu_antienc']
+    d2.ANTIENCX  = record['fu_antiencx']
+    d2.OTHCOND   = record['fu_othcond']
+    d2.OTHCONDX  = record['fu_othcondx']
+    packet.append(d2)
 
 
 def update_header(record, packet):
